@@ -44,7 +44,7 @@ sr_df <- data.frame(condition = numeric(n_sr),
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(15,15)
-sr_df$limit     <- c(110,110)
+sr_df$limit     <- c(425,425)
 sr_df$d         <- c(0.5,0)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
