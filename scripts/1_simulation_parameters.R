@@ -25,27 +25,37 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 50
+nIter         <- 10000
 
-# Sequential design parameters. 
-# For d, crit1, and crit2 you can enter a vector of numbers.
 
-nLimit    <- 100 # maximum number of participants to run
-d         <- c(0,0.5) # various effect sizes to consider
-crit1     <- c(10) # criteria for stopping for BF10
-crit2     <- c(1/6) # criteria for stopping for BF01
-minN      <- 10 # Initial minimum number of participants per group
-batchSize <- 5 # How many participants to add per group when neither of the criteria are reached.
+## If multiple stopping rules ------------------------------------------------------
+n_sr <- 2
 
-# Note: if various batchSizes are simulated the post-processing scripts
-# might not work.
+sr_df <- data.frame(condition = numeric(n_sr),
+                    minN      = numeric(n_sr),
+                    limit     = numeric(n_sr),
+                    batchSize = numeric(n_sr),
+                    d         = numeric(n_sr),
+                    crit1     = numeric(n_sr),
+                    crit2     = numeric(n_sr),
+                    test_type = character(n_sr),
+                    side_type = character(n_sr))
 
-# What type of test is it?
-test_types <- c('unpaired','paired')
-side_types <- c('two_tailed')
+sr_df$condition <- c(1,2)
+sr_df$minN      <- c(20)
+sr_df$batchSize <- c(15,15)
+sr_df$limit     <- c(110,110)
+sr_df$d         <- c(0.5,0)
+sr_df$crit1     <- c(6,6)
+sr_df$crit2     <- c(1/6,1/6)
+sr_df$test_type <- c('paired','paired')
+sr_df$side_type <- c('one_tailed','one_tailed')
+
+logical_check <- '&'
+
 
 # Name for saving folder
-saveFolder <- 'results_mmm_2'
+saveFolder <- 'multiple_stopping_rule'
 
 # Submit the slurm job?
 submitJob <- FALSE
@@ -56,120 +66,171 @@ simLocal <- TRUE
 # Define the function ########################################################
 # This function will be applied to specified parameters many times by slurm.
 
-helperfunction <- function(minN, d, crit1, crit2, batchSize, limit, 
-                           test_type, side_type){
+helperfunction <- function(minN,
+                           batchSize, 
+                           limit,                           
+                           cond_1_d,
+                           cond_2_d,
+                           cond_1_crit1,
+                           cond_2_crit1,
+                           cond_1_crit2,
+                           cond_2_crit2,
+                           cond_1_test_type, 
+                           cond_2_test_type, 
+                           cond_1_side_type,
+                           cond_2_side_type,
+                           logical_check){
         
         # Subfunction to efficiently report the BF
         # From https://github.com/JAQuent/assortedRFunctions/R/reportBF.R
-        reportBF = function(x, digits){
+        reportBF <- function(x, digits){
                 round(as.numeric(as.vector(x)), digits)
         }
         
-        bf      <- c()
+        
+        bf     <- vector(mode = "list", length = 2)
+        
+        dataG1 <- vector(mode = "list", length = 2)
+        dataG2 <- vector(mode = "list", length = 2)
+        
+        d         <- c(cond_1_d,cond_2_d)
+        crit1     <- c(cond_1_crit1,cond_2_crit1)
+        crit2     <- c(cond_1_crit2,cond_2_crit2)
+        test_type <- c(cond_1_test_type,cond_2_test_type)
+        side_type <- c(cond_1_side_type,cond_2_side_type)
+        
+        cond_df <- data.frame(minN,batchSize,limit,d,crit1,crit2,test_type,side_type)
+        cond_df$logical_check <- logical_check
+        cond_df$condition <- 1:nrow(cond_df)
+        
         results <- data.frame()
-        i       <- 1
-        n       <- as.numeric(minN)        
+        n_part  <- as.numeric(minN)        
         
-        # Is this one-sided or two sided
-        if (side_type == 'two_tailed'){
-                null_interval <- NULL
-        } else if (side_type == 'one_tailed'){
-                null_interval <- c(0,Inf)
-        }
-        
-        # Is this paired or unpaired?
-        if (test_type == 'unpaired'){
+        # Do the initial batch acquisition
+        for (iCond in seq(1,nrow(cond_df))){
                 
-                dataG1 <- rnorm(n, 0, 1)
-                dataG2 <- rnorm(n, d, 1)
-
-                # Calculate the initial bf
-                bf <- reportBF(ttestBF(
-                        dataG2,
-                        dataG1,
-                        nullInterval = null_interval
-                )[1],4)
+                # Is this one-sided or two sided
+                if (cond_df$side_type[iCond] == 'two_tailed'){
+                        null_interval <- NULL
+                } else if (cond_df$side_type[iCond] == 'one_tailed'){
+                        null_interval <- c(0,Inf)
+                } 
                 
-        } else if (test_type == 'paired'){
-                
-                dataG1 <- rnorm(n,d,1)
-                
-                # Calculate the initial bf
-                bf <- reportBF(ttestBF(
-                        dataG1,
-                        nullInterval = null_interval
-                )[1],4)                
-                
-        }
-        
-        # Within simulation loop
-        while(bf[length(bf)] < crit1 & bf[length(bf)] > crit2 & n < limit){
-                
-                # If neither of the criteria is reached and the limit isn't reached
-                # increase the n by batchsize, generate additional data, and check 
-                # the BFs again
-                n <- n + batchSize
-                
-                
-                if (test_type == 'unpaired'){
+                if (cond_df$test_type[iCond] == 'unpaired'){
                         
-                        dataG1      <- c(dataG1, rnorm(batchSize, 0, 1))
-                        dataG2      <- c(dataG2, rnorm(batchSize, d, 1))
+                        dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
+                        dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
                         
-                        bf[i + 1] <- reportBF(ttestBF(
-                                dataG2, 
-                                dataG1,
+                        bf[[iCond]][1] <- reportBF(ttestBF(
+                                dataG2[[iCond]], 
+                                dataG1[[iCond]], 
                                 nullInterval = null_interval
-                                )[1],4)
+                        )[1],4)
                         
-                } else if (test_type == 'paired'){
+                } else if (cond_df$test_type[iCond] == 'paired'){
                         
-                        dataG1    <- c(dataG1, rnorm(batchSize, d, 1))
+                        dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
                         
-                        bf[i + 1] <- reportBF(ttestBF(
-                                dataG1,
+                        bf[[iCond]][1] <- reportBF(ttestBF(
+                                dataG1[[iCond]],
                                 nullInterval = null_interval
-                                )[1],4)
-                }
+                        )[1],4)
+                }           
                 
-                i <- i + 1
-        }
-
-        results <- as.data.frame(bf)  
+        } # iCond        
         
+        
+        # Start the while loop
+        
+        # Defome the condition
+        if (logical_check == '&'){
+                while_string_log <- '|'
+        } else if (logical_check == '|'){
+                while_string_log <- '&'
+        }
+        
+        while_string <- paste0('n_part < limit & (bf[[1]][length(bf[[1]])] < cond_1_crit1 & bf[[1]][length(bf[[1]])] > cond_1_crit2)',
+                               while_string_log,
+                               '(bf[[2]][length(bf[[2]])] < cond_2_crit1 & bf[[2]][length(bf[[2]])] > cond_2_crit2)')
+        i <- 1
+        
+        while (eval(parse(text = while_string))){                
+
+                n_part <- n_part + batchSize
+                
+                for (iCond in seq(1,nrow(cond_df))){
+                        
+                        # Is this one-sided or two sided
+                        if (cond_df$side_type[iCond] == 'two_tailed'){
+                                null_interval <- NULL
+                        } else if (cond_df$side_type[iCond] == 'one_tailed'){
+                                null_interval <- c(0,Inf)
+                        } 
+                        
+                        if (cond_df$test_type[iCond] == 'unpaired'){
+                                
+                                dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
+                                dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+                                
+                                bf[[iCond]][i+1] <- reportBF(ttestBF(
+                                        dataG2[[iCond]], 
+                                        dataG1[[iCond]], 
+                                        nullInterval = null_interval
+                                )[1],4)
+                                
+                        } else if (cond_df$test_type[iCond] == 'paired'){
+                                
+                                dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+                                
+                                bf[[iCond]][i+1] <- reportBF(ttestBF(
+                                        dataG1[[iCond]],
+                                        nullInterval = null_interval
+                                )[1],4)
+                        }           
+                  
+                } # iCond
+                
+                
+        i <- i + 1
+                
+        } # while loop
+
         # Return results
-        results$minN      <- minN
-        results$d         <- d
-        results$n         <- seq(minN,n,batchSize)
-        results$crit1     <- crit1
-        results$crit2     <- crit2
-        results$batchSize <- batchSize
-        results$limit     <- limit
-        results$test_type <- test_type
-        results$side_type <- side_type
+        results <- cond_df %>%
+                pivot_wider(id_cols = c(minN,
+                                        batchSize,
+                                        limit,
+                                        logical_check),
+                            names_from = condition,
+                            values_from = c(d,crit1,crit2,test_type,side_type),
+                            names_glue = "cond_{condition}_{.value}")
+        
+        bf_df <- as.data.frame(bf)
+        colnames(bf_df) <- c('cond_1_bf','cond_2_bf')
+        
+        results   <- merge(results,bf_df)
+        results$n <- seq(minN,n_part,batchSize)
+
         return(results)
 }
 
 # Create parameters #########################################################
 # slurm will iterate over these with the helperfunction
 
-
-# First, create all the combinations
-cart_prod <- expand.grid(minN,
-                     d,
-                     crit1,
-                     crit2,
-                     batchSize,
-                     nLimit,
-                     test_types,
-                     side_types)
-names(cart_prod) <- c('minN','d','crit1','crit2','batchSize','limit',
-                      'test_type','side_type')
-
 # Now, repeat each of these combinations nIter times
-params <- cart_prod %>% 
-        slice(rep(1:n(), each=nIter)) %>%
-        mutate(across(c('test_type','side_type'),as.character))
+params <- sr_df %>%
+        pivot_wider(id_cols = c(minN,
+                                batchSize,
+                                limit),
+                    names_from = condition,
+                    names_glue = "cond_{condition}_{.value}",
+                    values_from = c(d,crit1,crit2,test_type,side_type))
+
+# Add the logical rule 
+params$logical_check <- logical_check
+
+# Now repeat nIter times
+params <- do.call("rbind", replicate(nIter, params, simplify = FALSE))
 
 # Run the simulation ##########################################################
 

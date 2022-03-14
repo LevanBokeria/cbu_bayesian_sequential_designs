@@ -23,20 +23,20 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
         # nTo can be different than the maxN that was given to the original simulation job,
         # but it cannot be larger than it.
         if (missing(nFrom)){
-                nFrom <- 24
+                nFrom <- 20
         }
         if (missing(nTo)){
-                nTo <- 600
+                nTo <- 110
         }
         if (missing(nBy)){
-                nBy <- 12
+                nBy <- 15
         }        
         altNs <- seq(nFrom,nTo,by = nBy)
         
         # Which preprocessed data to load?
         # This must correspond to where the simulation job was saved.
         if (missing(folderName)){
-                folderName <- 'results_1'
+                folderName <- 'multiple_stopping_rule'
         }
         
         # Load the data and get unique factor combinations ############################
@@ -47,7 +47,7 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
         # How many unique combinations of factors do we have? 
         # For each, we'll have to do the summary stats separately
         unique_combs <- sims_preprocessed %>%
-                select(minN,d,crit1,crit2,batchSize,limit,test_type,side_type) %>%
+                select(-c(id,cond_1_bf,cond_2_bf,n)) %>%
                 distinct()
         
         n_combs <- nrow(unique_combs)
@@ -69,23 +69,14 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
                 print(paste('Combination #',as.character(iComb),sep=''))
                 print(unique_combs[iComb,])
                 
-                # From the overall dataframe, select only the part that belongs to 
-                # the simulation with the current combination of parameters
-                tempDF <- sims_preprocessed %>%
-                        filter(d == unique_combs$d[iComb],
-                               minN == unique_combs$minN[iComb],
-                               crit1 == unique_combs$crit1[iComb],
-                               crit2 == unique_combs$crit2[iComb],
-                               batchSize == unique_combs$batchSize[iComb],
-                               limit == unique_combs$limit[iComb],
-                               test_type == unique_combs$test_type[iComb],
-                               side_type == unique_combs$side_type[iComb])
-        
-                # For each alternative maxN stopping rule:
-                # 1: get the rows that have n <= iN
-                # 2: For each of the simulation (id column), get the last row 
-                # which is where that simulation stopped. This row has the final 
-                # status of that particular simulation.
+                # Get just this combination as a data frame
+                iComb_df <- unique_combs %>%
+                        slice(iComb)
+                
+                # Now, from the overall sims_preprocessed dataframe, get the rows
+                # that match iComb_df
+                tempDF <- merge(iComb_df,sims_preprocessed, by = colnames(iComb_df))
+                
                 for (iN in altNs){
                         print(iN)
         
@@ -101,14 +92,23 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
         # Concatenate into one dataframe
         outdfbinded <- rbindlist(outdf, idcol = NULL)
         
-        # Classify what the bf supported
-        outdfbinded <- outdfbinded %>% 
-                mutate(bf_status = as.factor(
+        # Has the overall logical check of the condition been met?
+        outdfbinded <- outdfbinded %>%
+                mutate(cond_1_bf_status = as.factor(
                         case_when(
-                                bf > crit1 ~ 'H1',
-                                bf < crit2 ~ 'H0',
+                                cond_1_bf > cond_1_crit1 ~ 'H1',
+                                cond_1_bf < cond_1_crit2 ~ 'H0',
                                 TRUE ~ 'undecided'
-                )))
+                                
+                        )),
+                       cond_2_bf_status = as.factor(
+                               case_when(
+                                       cond_2_bf > cond_2_crit1 ~ 'H1',
+                                       cond_2_bf < cond_2_crit2 ~ 'H0',
+                                       TRUE ~ 'undecided'
+                                       
+                               ))
+                       )
         
         # Summary statistics ########################################################
         
@@ -117,107 +117,45 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
         # supporting various outcomes
         nIter <- sims_preprocessed %>% 
                 distinct(id, .keep_all = T) %>%
-                group_by(minN,d,crit1,crit2,batchSize,limit,test_type,side_type) %>% 
+                group_by(minN,
+                         batchSize,
+                         limit,
+                         cond_1_d,
+                         cond_1_crit1,
+                         cond_1_crit2,
+                         cond_1_test_type,
+                         cond_1_side_type,
+                         cond_2_d,
+                         cond_2_crit1,
+                         cond_2_crit2,
+                         cond_2_test_type,
+                         cond_2_side_type) %>% 
                 mutate(iter_idx = row_number()) %>%
                 ungroup() %>%
                 select(iter_idx) %>% max()
-        
-        ## Whats the average n to run to reach a certain power? ---------------
-        average_n_to_run <- 
-                outdfbinded %>%
-                group_by(minN,
-                         d,
-                         crit1,
-                         crit2,
-                         batchSize,
-                         limit,
-                         test_type,
-                         side_type,
-                         altMaxN) %>%
-                summarise(mean_n = mean(n),
-                          median_n = median(n)) %>% 
-                ungroup()
         
         ## Calculate the probabilities of supporting various outcomes ---------      
         power_table <- 
                 outdfbinded %>%
                 group_by(minN,
-                         d,
-                         crit1,
-                         crit2,
                          batchSize,
                          limit,
-                         test_type,
-                         side_type,
+                         cond_1_d,
+                         cond_1_crit1,
+                         cond_1_crit2,
+                         cond_1_test_type,
+                         cond_1_side_type,
+                         cond_2_d,
+                         cond_2_crit1,
+                         cond_2_crit2,
+                         cond_2_test_type,
+                         cond_2_side_type,                         
                          altMaxN,
-                         bf_status) %>%
-                summarise(n_simulations = n(),
+                         cond_1_bf_status,
+                         cond_2_bf_status) %>%
+                summarise(n_simulations = n(), 
                           perc_simulations = n_simulations/nIter*100) %>%
-                ungroup() %>%
-                pivot_wider(id_cols = c(
-                                minN,
-                                d,
-                                crit1,
-                                crit2,
-                                batchSize,
-                                limit,
-                                test_type,
-                                side_type,
-                                altMaxN
-                                ),
-                                names_from = bf_status,
-                                values_from = c(n_simulations,perc_simulations),
-                                names_prefix = 'supports_')
-        
-        # If no simulation supported H0, then manually create these columns:
-        if (!'n_simulations_supports_H0' %in% names(power_table)){
-                
-                power_table <- power_table %>%
-                        add_column(n_simulations_supports_H0 = 0, 
-                                   .after = 'altMaxN') %>%
-                        add_column(perc_simulations_supports_H0 = 0,
-                                   .after = 'n_simulations_supports_undecided')
-                
-        }
-        
-        # If no simulation supported H1, then manually create these columns:
-        if (!'n_simulations_supports_H1' %in% names(power_table)){
-                
-                power_table <- power_table %>%
-                        add_column(n_simulations_supports_H1 = 0, 
-                                   .after = 'n_simulations_supports_H0') %>%
-                        add_column(perc_simulations_supports_H1 = 0,
-                                   .after = 'perc_simulations_supports_H0')                
-                
-        }
-        
-        # If no simulation supported undecided, then manually create these columns:
-        if (!'n_simulations_supports_undecided' %in% names(power_table)){
-                
-                power_table <- power_table %>%
-                        add_column(n_simulations_supports_undecided = 0, 
-                                   .after = 'n_simulations_supports_H1') %>%
-                        add_column(perc_simulations_supports_undecided = 0,
-                                   .after = 'perc_simulations_supports_H1')
-        
-        }
-        
-        # Now unite these two tables
-        power_table <- merge(power_table,
-                             average_n_to_run)
-        
-        # Sort so that maxAltNs are in ascending order:
-        power_table <- power_table %>% 
-                group_by(minN,
-                         d,
-                         crit1,
-                         crit2,
-                         limit,
-                         batchSize,
-                         test_type,
-                         side_type,
-                         ) %>%
-                arrange(altMaxN, .by_group = TRUE)
+                ungroup()
         
         # Save the data ###############################################################
         

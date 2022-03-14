@@ -13,11 +13,11 @@ saveData <- TRUE
 
 # For the summary stats
 nFrom <- 10
-nTo   <- 100
+nTo   <- 110
 nBy   <- 20
 
 # Folder where the slurm output is
-folder <- 'results_mmm_large_batchsize'
+folder <- 'multiple_stopping_rule'
 
 # Now, call each function ######################################################
 
@@ -31,4 +31,4 @@ sims_preprocessed <- preprocess_output(saveData,folder)
 power_table <- summary_stats(saveData,nFrom,nTo,nBy,folder)
 
 ## 5_plot_results -------------------------------------------------------------
-plot_results(folder)
+# plot_results(folder)
