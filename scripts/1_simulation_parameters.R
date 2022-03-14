@@ -45,7 +45,7 @@ sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(15,15)
 sr_df$limit     <- c(425,425)
-sr_df$d         <- c(0.5,0)
+sr_df$d         <- c(0,0.25)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
@@ -55,13 +55,13 @@ logical_check <- '&'
 
 
 # Name for saving folder
-saveFolder <- 'multiple_stopping_rule'
+saveFolder <- 'multiple_stopping_rule_no_effect_small'
 
 # Submit the slurm job?
-submitJob <- FALSE
+submitJob <- TRUE
 
 # Simulate locally? This will take much longer for large jobs
-simLocal <- TRUE
+simLocal <- FALSE
 
 # Define the function ########################################################
 # This function will be applied to specified parameters many times by slurm.
