@@ -124,7 +124,7 @@ plot_results = function(folderName){
                 # For d != 0
                 
                 fig <- fig +
-                        geom_line(data = filter(tbl,d == 0.25),
+                        geom_line(data = filter(tbl,d == 0.5),
                                   aes(x=altMaxN,
                                       y=perc_simulations_supports_H1,
                                       group = side_type,
@@ -134,7 +134,7 @@ plot_results = function(folderName){
                 
                 # Add the actual multiplication of the probabilities
                 tbl_mult <- tbl %>%
-                        filter(d %in% c(0,0.25)) %>%
+                        filter(d %in% c(0,0.5)) %>%
                         select(d,
                                perc_simulations_supports_H0,
                                perc_simulations_supports_H1,
@@ -143,7 +143,7 @@ plot_results = function(folderName){
                                     names_from = d,
                                     values_from = c(perc_simulations_supports_H0,
                                                     perc_simulations_supports_H1)) %>% 
-                        mutate(multiplied_prob = perc_simulations_supports_H0_0 * perc_simulations_supports_H1_0.25 / 100)
+                        mutate(multiplied_prob = perc_simulations_supports_H0_0 * perc_simulations_supports_H1_0.5 / 100)
                 
                 fig <- fig +
                         geom_line(data = tbl_mult,
