@@ -26,13 +26,13 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 10000
+nIter         <- 10
 
 
 ## If multiple stopping rules ------------------------------------------------------
 
 # whats the covariance between conditions?
-cv <- 0
+cv <- 0.5
 
 n_sr <- 2
 
@@ -49,7 +49,7 @@ sr_df <- data.frame(condition = numeric(n_sr),
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(16,16)
-sr_df$limit     <- c(340,340)
+sr_df$limit     <- c(100,100)
 sr_df$d         <- c(0.5,0.5)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
