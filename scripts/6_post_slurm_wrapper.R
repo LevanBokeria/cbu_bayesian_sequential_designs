@@ -13,11 +13,11 @@ saveData <- TRUE
 
 # For the summary stats
 nFrom <- 20
-nTo   <- 100
+nTo   <- 340
 nBy   <- 16
 
 # Folder where the slurm output is
-folder <- 'multiple_stopping_rule_dependent_conditions_0_0'
+folder <- 'multiple_stopping_rule_dependent_conditions_05_05'
 
 # Now, call each function ######################################################
 
@@ -31,4 +31,4 @@ sims_preprocessed <- preprocess_output(saveData,folder)
 power_table <- summary_stats(saveData,nFrom,nTo,nBy,folder)
 
 ## 5_plot_results -------------------------------------------------------------
-plot_results(folder)
+# plot_results(folder)

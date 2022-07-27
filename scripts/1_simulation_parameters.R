@@ -13,7 +13,7 @@
 rm(list=ls())
 
 # Setting seed
-set.seed(789654)
+set.seed(654456)
 
 # Libraries
 pacman::p_load(rslurm,
@@ -26,7 +26,7 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 1000
+nIter         <- 10000
 
 
 ## If multiple stopping rules ------------------------------------------------------
@@ -45,8 +45,8 @@ sr_df <- data.frame(condition = numeric(n_sr),
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(16,16)
-sr_df$limit     <- c(100,100)
-sr_df$d         <- c(0,0)
+sr_df$limit     <- c(340,340)
+sr_df$d         <- c(0.5,0.5)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
@@ -59,10 +59,10 @@ logical_check <- '&'
 saveFolder <- paste('multiple_stopping_rule_dependent_conditions',paste(sr_df$d,collapse = '_'), sep = '_', collapse = '_')
 
 # Submit the slurm job?
-submitJob <- F
+submitJob <- T
 
 # Simulate locally? This will take much longer for large jobs
-simLocal <- T
+simLocal <- F
 
 # Define the function ########################################################
 # This function will be applied to specified parameters many times by slurm.
