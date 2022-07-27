@@ -17,7 +17,7 @@ nTo   <- 340
 nBy   <- 16
 
 # Folder where the slurm output is
-folder <- 'multiple_stopping_rule_dependent_conditions_0_0'
+folder <- 'multiple_stopping_rule_dependent_conditions_0_025'
 
 # Now, call each function ######################################################
 

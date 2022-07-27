@@ -30,6 +30,10 @@ nIter         <- 10000
 
 
 ## If multiple stopping rules ------------------------------------------------------
+
+# whats the covariance between conditions?
+cv <- 0
+
 n_sr <- 2
 
 sr_df <- data.frame(condition = numeric(n_sr),
@@ -54,15 +58,14 @@ sr_df$side_type <- c('two_tailed','two_tailed')
 
 logical_check <- '&'
 
-
 # Name for saving folder
-saveFolder <- paste('multiple_stopping_rule_dependent_conditions',paste(sr_df$d,collapse = '_'), sep = '_', collapse = '_')
+saveFolder <- paste('multiple_stopping_rule_dependent_conditions',cv,paste(sr_df$d,collapse = '_'), sep = '_', collapse = '_')
 
 # Submit the slurm job?
-submitJob <- T
+submitJob <- F
 
 # Simulate locally? This will take much longer for large jobs
-simLocal <- F
+simLocal <- T
 
 # Define the function ########################################################
 # This function will be applied to specified parameters many times by slurm.
@@ -80,7 +83,8 @@ helperfunction <- function(minN,
                            cond_2_test_type, 
                            cond_1_side_type,
                            cond_2_side_type,
-                           logical_check){
+                           logical_check,
+                           cv){
         
         # Subfunction to efficiently report the BF
         # From https://github.com/JAQuent/assortedRFunctions/R/reportBF.R
@@ -105,40 +109,7 @@ helperfunction <- function(minN,
         cond_df$condition <- 1:nrow(cond_df)
         
         results <- data.frame()
-        n_part  <- as.numeric(minN)        
-        
-        # Do the initial batch acquisition
-        # for (iCond in seq(1,nrow(cond_df))){
-        #         
-        #         # Is this one-sided or two sided
-        #         if (cond_df$side_type[iCond] == 'two_tailed'){
-        #                 null_interval <- NULL
-        #         } else if (cond_df$side_type[iCond] == 'one_tailed'){
-        #                 null_interval <- c(0,Inf)
-        #         } 
-        #         
-        #         if (cond_df$test_type[iCond] == 'unpaired'){
-        #                 
-        #                 dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
-        #                 dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-        #                 
-        #                 bf[[iCond]][1] <- reportBF(ttestBF(
-        #                         dataG2[[iCond]], 
-        #                         dataG1[[iCond]], 
-        #                         nullInterval = null_interval
-        #                 )[1],4)
-        #                 
-        #         } else if (cond_df$test_type[iCond] == 'paired'){
-        #                 
-        #                 dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-        #                 
-        #                 bf[[iCond]][1] <- reportBF(ttestBF(
-        #                         dataG1[[iCond]],
-        #                         nullInterval = null_interval
-        #                 )[1],4)
-        #         }           
-        #         
-        # } # iCond        
+        n_part  <- as.numeric(minN)       
         
         
         # Get group data from a multivariabe normal distribution
@@ -146,9 +117,9 @@ helperfunction <- function(minN,
                                    mu = c(-cond_df$d[1],
                                           0,
                                           -cond_df$d[2]),
-                                   Sigma <- matrix(c(1,0.5,0.5,
-                                                     0.5,1,0.5,
-                                                     0.5,0.5,1),3,3))
+                                   Sigma <- matrix(c(1,cv,cv,
+                                                     cv,1,cv,
+                                                     cv,cv,1),3,3))
         
         for (iCond in seq(1,nrow(cond_df))){
                 
@@ -197,9 +168,9 @@ helperfunction <- function(minN,
                                     mu = c(-cond_df$d[1],
                                            0,
                                            -cond_df$d[2]),
-                                    Sigma <- matrix(c(1,0.5,0.5,
-                                                      0.5,1,0.5,
-                                                      0.5,0.5,1),3,3))
+                                    Sigma <- matrix(c(1,cv,cv,
+                                                      cv,1,cv,
+                                                      cv,cv,1),3,3))
                 
                 for (iCond in seq(1,nrow(cond_df))){
                         
@@ -221,28 +192,7 @@ helperfunction <- function(minN,
                         bf[[iCond]][i + 1] <- reportBF(ttestBF(
                                 dataG1[[iCond]],
                                 nullInterval = null_interval
-                        )[1],4) 
-                        
-                        # if (cond_df$test_type[iCond] == 'unpaired'){
-                        #         
-                        #         dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
-                        #         dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-                        #         
-                        #         bf[[iCond]][i+1] <- reportBF(ttestBF(
-                        #                 dataG2[[iCond]], 
-                        #                 dataG1[[iCond]], 
-                        #                 nullInterval = null_interval
-                        #         )[1],4)
-                        #         
-                        # } else if (cond_df$test_type[iCond] == 'paired'){
-                        #         
-                        #         dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-                        #         
-                        #         bf[[iCond]][i+1] <- reportBF(ttestBF(
-                        #                 dataG1[[iCond]],
-                        #                 nullInterval = null_interval
-                        #         )[1],4)
-                        # }           
+                        )[1],4)          
                   
                 } # iCond
                 
@@ -284,6 +234,9 @@ params <- sr_df %>%
 
 # Add the logical rule 
 params$logical_check <- logical_check
+
+# Add the covariance
+params$cv <- cv
 
 # Now repeat nIter times
 params <- do.call("rbind", replicate(nIter, params, simplify = FALSE))
