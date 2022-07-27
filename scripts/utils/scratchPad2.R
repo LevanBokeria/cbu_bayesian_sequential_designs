@@ -4,9 +4,11 @@ pacman::p_load(rio,
                MASS)
 
 
-Sigma <- matrix(c(1,0.5,0.5,0.5,1,0.5,0.5,0.5,1),3,3)
+Sigma <- matrix(c(1,0.5,0.1,
+                  0.5,1,0.5,
+                  0.1,0.5,1),3,3)
 
-a <- mvrnorm(n = 100,
+a <- mvrnorm(n = 10000,
         c(10,10.5,10),
         Sigma)
 

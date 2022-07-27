@@ -18,6 +18,7 @@ set.seed(789654)
 # Libraries
 pacman::p_load(rslurm,
                BayesFactor,
+               MASS,
                tidyverse)
 
 # Setup simulation parameters and flags #######################################
@@ -25,7 +26,7 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 100
+nIter         <- 1000
 
 
 ## If multiple stopping rules ------------------------------------------------------
@@ -44,8 +45,8 @@ sr_df <- data.frame(condition = numeric(n_sr),
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(16,16)
-sr_df$limit     <- c(104,104)
-sr_df$d         <- c(0.5,0.5)
+sr_df$limit     <- c(100,100)
+sr_df$d         <- c(0,0)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
@@ -140,18 +141,14 @@ helperfunction <- function(minN,
         # } # iCond        
         
         
-        # Get group data
-        
-        
-        
-        
-        d2 <- rnorm(minN, 1, sqrt(1/2))
-        d1 <- rnorm(minN,
-                    mean = 1 - cond_df$d[1],
-                    sqrt(1/2))
-        d3 <- rnorm(minN,
-                    mean = 1 - cond_df$d[2],
-                    sqrt(1/2))        
+        # Get group data from a multivariabe normal distribution
+        all_data <- mvrnorm(n = minN,
+                                   mu = c(-cond_df$d[1],
+                                          0,
+                                          -cond_df$d[2]),
+                                   Sigma <- matrix(c(1,0.5,0.5,
+                                                     0.5,1,0.5,
+                                                     0.5,0.5,1),3,3))
         
         for (iCond in seq(1,nrow(cond_df))){
                 
@@ -164,10 +161,10 @@ helperfunction <- function(minN,
                 
                 # Now get the differences
                 if (iCond == 1){
-                        dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d1)        
+                        dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,1])        
                 } else if (iCond == 2){
                         
-                        dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d3)        
+                        dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,3])        
                 }
                 
                 bf[[iCond]][1] <- reportBF(ttestBF(
@@ -195,14 +192,14 @@ helperfunction <- function(minN,
 
                 n_part <- n_part + batchSize
                 
-                # Again, create the group data
-                d2 <- rnorm(batchSize, 1, sqrt(1/2))
-                d1 <- rnorm(batchSize,
-                            mean = 1 - cond_df$d[1],
-                            sqrt(1/2))
-                d3 <- rnorm(batchSize,
-                            mean = 1 - cond_df$d[2],
-                            sqrt(1/2))  
+                # Get group data from a multivariabe normal distribution
+                all_data <- mvrnorm(n = batchSize,
+                                    mu = c(-cond_df$d[1],
+                                           0,
+                                           -cond_df$d[2]),
+                                    Sigma <- matrix(c(1,0.5,0.5,
+                                                      0.5,1,0.5,
+                                                      0.5,0.5,1),3,3))
                 
                 for (iCond in seq(1,nrow(cond_df))){
                         
@@ -215,10 +212,10 @@ helperfunction <- function(minN,
                         
                         # Now get the differences
                         if (iCond == 1){
-                                dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d1)        
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,1])        
                         } else if (iCond == 2){
                                 
-                                dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d3)        
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,3])        
                         }
                         
                         bf[[iCond]][i + 1] <- reportBF(ttestBF(

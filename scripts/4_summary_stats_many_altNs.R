@@ -47,7 +47,7 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
         # How many unique combinations of factors do we have? 
         # For each, we'll have to do the summary stats separately
         unique_combs <- sims_preprocessed %>%
-                select(-c(id,cond_1_bf,cond_2_bf,n)) %>%
+                select(-c(id,cond_1_bf,cond_2_bf,n)) %>% 
                 distinct()
         
         n_combs <- nrow(unique_combs)
