@@ -25,7 +25,7 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 10000
+nIter         <- 100
 
 
 ## If multiple stopping rules ------------------------------------------------------
@@ -43,25 +43,25 @@ sr_df <- data.frame(condition = numeric(n_sr),
 
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
-sr_df$batchSize <- c(15,15)
-sr_df$limit     <- c(425,425)
-sr_df$d         <- c(0,0.25)
+sr_df$batchSize <- c(16,16)
+sr_df$limit     <- c(104,104)
+sr_df$d         <- c(0.5,0.5)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
-sr_df$side_type <- c('one_tailed','one_tailed')
+sr_df$side_type <- c('two_tailed','two_tailed')
 
 logical_check <- '&'
 
 
 # Name for saving folder
-saveFolder <- 'multiple_stopping_rule_no_effect_small'
+saveFolder <- paste('multiple_stopping_rule_dependent_conditions',paste(sr_df$d,collapse = '_'), sep = '_', collapse = '_')
 
 # Submit the slurm job?
-submitJob <- TRUE
+submitJob <- F
 
 # Simulate locally? This will take much longer for large jobs
-simLocal <- FALSE
+simLocal <- T
 
 # Define the function ########################################################
 # This function will be applied to specified parameters many times by slurm.
@@ -107,6 +107,52 @@ helperfunction <- function(minN,
         n_part  <- as.numeric(minN)        
         
         # Do the initial batch acquisition
+        # for (iCond in seq(1,nrow(cond_df))){
+        #         
+        #         # Is this one-sided or two sided
+        #         if (cond_df$side_type[iCond] == 'two_tailed'){
+        #                 null_interval <- NULL
+        #         } else if (cond_df$side_type[iCond] == 'one_tailed'){
+        #                 null_interval <- c(0,Inf)
+        #         } 
+        #         
+        #         if (cond_df$test_type[iCond] == 'unpaired'){
+        #                 
+        #                 dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
+        #                 dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+        #                 
+        #                 bf[[iCond]][1] <- reportBF(ttestBF(
+        #                         dataG2[[iCond]], 
+        #                         dataG1[[iCond]], 
+        #                         nullInterval = null_interval
+        #                 )[1],4)
+        #                 
+        #         } else if (cond_df$test_type[iCond] == 'paired'){
+        #                 
+        #                 dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+        #                 
+        #                 bf[[iCond]][1] <- reportBF(ttestBF(
+        #                         dataG1[[iCond]],
+        #                         nullInterval = null_interval
+        #                 )[1],4)
+        #         }           
+        #         
+        # } # iCond        
+        
+        
+        # Get group data
+        
+        
+        
+        
+        d2 <- rnorm(minN, 1, sqrt(1/2))
+        d1 <- rnorm(minN,
+                    mean = 1 - cond_df$d[1],
+                    sqrt(1/2))
+        d3 <- rnorm(minN,
+                    mean = 1 - cond_df$d[2],
+                    sqrt(1/2))        
+        
         for (iCond in seq(1,nrow(cond_df))){
                 
                 # Is this one-sided or two sided
@@ -114,31 +160,22 @@ helperfunction <- function(minN,
                         null_interval <- NULL
                 } else if (cond_df$side_type[iCond] == 'one_tailed'){
                         null_interval <- c(0,Inf)
-                } 
+                }        
                 
-                if (cond_df$test_type[iCond] == 'unpaired'){
+                # Now get the differences
+                if (iCond == 1){
+                        dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d1)        
+                } else if (iCond == 2){
                         
-                        dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
-                        dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-                        
-                        bf[[iCond]][1] <- reportBF(ttestBF(
-                                dataG2[[iCond]], 
-                                dataG1[[iCond]], 
-                                nullInterval = null_interval
-                        )[1],4)
-                        
-                } else if (cond_df$test_type[iCond] == 'paired'){
-                        
-                        dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-                        
-                        bf[[iCond]][1] <- reportBF(ttestBF(
-                                dataG1[[iCond]],
-                                nullInterval = null_interval
-                        )[1],4)
-                }           
+                        dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d3)        
+                }
                 
-        } # iCond        
-        
+                bf[[iCond]][1] <- reportBF(ttestBF(
+                        dataG1[[iCond]],
+                        nullInterval = null_interval
+                )[1],4)        
+                
+        }
         
         # Start the while loop
         
@@ -158,6 +195,15 @@ helperfunction <- function(minN,
 
                 n_part <- n_part + batchSize
                 
+                # Again, create the group data
+                d2 <- rnorm(batchSize, 1, sqrt(1/2))
+                d1 <- rnorm(batchSize,
+                            mean = 1 - cond_df$d[1],
+                            sqrt(1/2))
+                d3 <- rnorm(batchSize,
+                            mean = 1 - cond_df$d[2],
+                            sqrt(1/2))  
+                
                 for (iCond in seq(1,nrow(cond_df))){
                         
                         # Is this one-sided or two sided
@@ -167,26 +213,39 @@ helperfunction <- function(minN,
                                 null_interval <- c(0,Inf)
                         } 
                         
-                        if (cond_df$test_type[iCond] == 'unpaired'){
+                        # Now get the differences
+                        if (iCond == 1){
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d1)        
+                        } else if (iCond == 2){
                                 
-                                dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
-                                dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-                                
-                                bf[[iCond]][i+1] <- reportBF(ttestBF(
-                                        dataG2[[iCond]], 
-                                        dataG1[[iCond]], 
-                                        nullInterval = null_interval
-                                )[1],4)
-                                
-                        } else if (cond_df$test_type[iCond] == 'paired'){
-                                
-                                dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
-                                
-                                bf[[iCond]][i+1] <- reportBF(ttestBF(
-                                        dataG1[[iCond]],
-                                        nullInterval = null_interval
-                                )[1],4)
-                        }           
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], d2 - d3)        
+                        }
+                        
+                        bf[[iCond]][i + 1] <- reportBF(ttestBF(
+                                dataG1[[iCond]],
+                                nullInterval = null_interval
+                        )[1],4) 
+                        
+                        # if (cond_df$test_type[iCond] == 'unpaired'){
+                        #         
+                        #         dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
+                        #         dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+                        #         
+                        #         bf[[iCond]][i+1] <- reportBF(ttestBF(
+                        #                 dataG2[[iCond]], 
+                        #                 dataG1[[iCond]], 
+                        #                 nullInterval = null_interval
+                        #         )[1],4)
+                        #         
+                        # } else if (cond_df$test_type[iCond] == 'paired'){
+                        #         
+                        #         dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+                        #         
+                        #         bf[[iCond]][i+1] <- reportBF(ttestBF(
+                        #                 dataG1[[iCond]],
+                        #                 nullInterval = null_interval
+                        #         )[1],4)
+                        # }           
                   
                 } # iCond
                 

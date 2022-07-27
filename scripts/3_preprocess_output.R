@@ -21,7 +21,7 @@ preprocess_output = function(saveDF,folder){
         # This name should correspond to the name used in 1_simulation_parameters.R script
         # So that the correct files are loaded and preprocessed.
         if (missing(folder)){
-                folder <- 'multiple_stopping_rule'
+                folder <- 'multiple_stopping_rule_dependent_conditions_0.5_0.5'
         }
         
         # The new folder where to save the preprocessed data

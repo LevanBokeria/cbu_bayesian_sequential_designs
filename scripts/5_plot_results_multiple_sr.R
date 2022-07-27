@@ -15,7 +15,7 @@ plot_results = function(folderName){
         
         # This must correspond to the variable given to the previous scripts
         if (missing(folderName)){
-                folderName <- 'multiple_stopping_rule'                
+                folderName <- 'multiple_stopping_rule_dependent_conditions_0.5_0.5'                
         }       
         
         power_table <- import(file.path('./analysis_results',
@@ -102,62 +102,62 @@ plot_results = function(folderName){
                 
                 # Optionally, add a dashed line for individual simulations
                 # - load the data file
-                power_table_single_sr <- import('../bayesian_sequential_design_simulations/analysis_results/results_schema_boards/power_table.RData')
-                                        
-                # For d = 0
-                tbl <- power_table_single_sr %>%
-                        filter(d %in% c(0,0.25,0.5),
-                               crit1 == 6,
-                               crit2 == 1/6,
-                               test_type == 'paired',
-                               side_type == 'one_tailed')
-
-                fig <- fig +
-                        geom_line(data = filter(tbl,d == 0),
-                                  aes(x=altMaxN,
-                                      y=perc_simulations_supports_H0,
-                                      group = side_type,
-                                      color = side_type),
-                                  linetype = 'dashed',
-                                  color = 'black')
-                
-                # For d != 0
-                
-                fig <- fig +
-                        geom_line(data = filter(tbl,d == 0.5),
-                                  aes(x=altMaxN,
-                                      y=perc_simulations_supports_H1,
-                                      group = side_type,
-                                      color = side_type),
-                                  linetype = 'solid',
-                                  color = 'black')                
-                
-                # Add the actual multiplication of the probabilities
-                tbl_mult <- tbl %>%
-                        filter(d %in% c(0,0.5)) %>%
-                        select(d,
-                               perc_simulations_supports_H0,
-                               perc_simulations_supports_H1,
-                               altMaxN) %>% 
-                        pivot_wider(id_cols = c(altMaxN),
-                                    names_from = d,
-                                    values_from = c(perc_simulations_supports_H0,
-                                                    perc_simulations_supports_H1)) %>% 
-                        mutate(multiplied_prob = perc_simulations_supports_H0_0 * perc_simulations_supports_H1_0.5 / 100)
-                
-                fig <- fig +
-                        geom_line(data = tbl_mult,
-                                  aes(x=altMaxN,
-                                      y=multiplied_prob,
-                                      group='',
-                                      color=''),
-                                  linetype = 'solid',
-                                  color = 'blue',
-                                  size=1)
-                
-                
-                
-                print(fig)                        
+                # power_table_single_sr <- import('../bayesian_sequential_design_simulations/analysis_results/results_schema_boards/power_table.RData')
+                #                         
+                # # For d = 0
+                # tbl <- power_table_single_sr %>%
+                #         filter(d %in% c(0,0.25,0.5),
+                #                crit1 == 6,
+                #                crit2 == 1/6,
+                #                test_type == 'paired',
+                #                side_type == 'one_tailed')
+                # 
+                # fig <- fig +
+                #         geom_line(data = filter(tbl,d == 0),
+                #                   aes(x=altMaxN,
+                #                       y=perc_simulations_supports_H0,
+                #                       group = side_type,
+                #                       color = side_type),
+                #                   linetype = 'dashed',
+                #                   color = 'black')
+                # 
+                # # For d != 0
+                # 
+                # fig <- fig +
+                #         geom_line(data = filter(tbl,d == 0.5),
+                #                   aes(x=altMaxN,
+                #                       y=perc_simulations_supports_H1,
+                #                       group = side_type,
+                #                       color = side_type),
+                #                   linetype = 'solid',
+                #                   color = 'black')                
+                # 
+                # # Add the actual multiplication of the probabilities
+                # tbl_mult <- tbl %>%
+                #         filter(d %in% c(0,0.5)) %>%
+                #         select(d,
+                #                perc_simulations_supports_H0,
+                #                perc_simulations_supports_H1,
+                #                altMaxN) %>% 
+                #         pivot_wider(id_cols = c(altMaxN),
+                #                     names_from = d,
+                #                     values_from = c(perc_simulations_supports_H0,
+                #                                     perc_simulations_supports_H1)) %>% 
+                #         mutate(multiplied_prob = perc_simulations_supports_H0_0 * perc_simulations_supports_H1_0.5 / 100)
+                # 
+                # fig <- fig +
+                #         geom_line(data = tbl_mult,
+                #                   aes(x=altMaxN,
+                #                       y=multiplied_prob,
+                #                       group='',
+                #                       color=''),
+                #                   linetype = 'solid',
+                #                   color = 'blue',
+                #                   size=1)
+                # 
+                # 
+                # 
+                print(fig)
         
         }
 
