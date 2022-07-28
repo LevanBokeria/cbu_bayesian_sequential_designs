@@ -100,6 +100,24 @@ plot_results = function(folderName){
                         xlab('max N per group') +                 
                         ggtitle(title_string)
                 
+                power_table2 <- import('../../Desktop/New folder/power_table.RData')
+                # Classify simulations
+                power_table2 <- power_table2 %>%
+                        mutate(bf_status_combined = paste(cond_1_bf_status,cond_2_bf_status,sep='_'))                
+                
+                a <- power_table2 %>% 
+                        filter(bf_status_combined == 'H1_H1') %>%
+                        droplevels()
+                
+                fig <- fig +
+                        geom_line(data = a,
+                                  aes(x=altMaxN,
+                                      y=perc_simulations,
+                                      group = bf_status_combined),
+                                  linetype = 'dashed',
+                                  color = 'black')
+                
+                
                 # Optionally, add a dashed line for individual simulations
                 # - load the data file
                 # power_table_single_sr <- import('../bayesian_sequential_design_simulations/analysis_results/results_schema_boards/power_table.RData')
