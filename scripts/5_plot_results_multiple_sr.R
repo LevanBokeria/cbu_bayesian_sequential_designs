@@ -15,7 +15,7 @@ plot_results = function(folderName){
         
         # This must correspond to the variable given to the previous scripts
         if (missing(folderName)){
-                folderName <- 'multiple_stopping_rule_dependent_conditions_05_0'                
+                folderName <- 'multiple_stopping_rule_dependent_conditions_0_05_05'                
         }       
         
         power_table <- import(file.path('./analysis_results',
