@@ -26,13 +26,14 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 10
+nIter         <- 100
 
 
 ## If multiple stopping rules ------------------------------------------------------
 
 # whats the covariance between conditions?
-cv <- 0.5
+cv <- 0
+ind_var <- 1/2
 
 n_sr <- 2
 
@@ -59,7 +60,11 @@ sr_df$side_type <- c('two_tailed','two_tailed')
 logical_check <- '&'
 
 # Name for saving folder
-saveFolder <- paste('multiple_stopping_rule_dependent_conditions',cv,paste(sr_df$d,collapse = '_'), sep = '_', collapse = '_')
+saveFolder <- paste('multiple_stopping_rule_dependent_conditions',
+                    cv,
+                    paste(sr_df$d,collapse = '_'),
+                    sep = '_',
+                    collapse = '_')
 
 # Submit the slurm job?
 submitJob <- F
@@ -84,7 +89,8 @@ helperfunction <- function(minN,
                            cond_1_side_type,
                            cond_2_side_type,
                            logical_check,
-                           cv){
+                           cv,
+                           ind_var){
         
         # Subfunction to efficiently report the BF
         # From https://github.com/JAQuent/assortedRFunctions/R/reportBF.R
@@ -117,9 +123,9 @@ helperfunction <- function(minN,
                                    mu = c(-cond_df$d[1],
                                           0,
                                           -cond_df$d[2]),
-                                   Sigma <- matrix(c(1,cv,cv,
-                                                     cv,1,cv,
-                                                     cv,cv,1),3,3))
+                                   Sigma <- matrix(c(ind_var,cv,cv,
+                                                     cv,ind_var,cv,
+                                                     cv,cv,ind_var),3,3))
         
         for (iCond in seq(1,nrow(cond_df))){
                 
@@ -168,9 +174,9 @@ helperfunction <- function(minN,
                                     mu = c(-cond_df$d[1],
                                            0,
                                            -cond_df$d[2]),
-                                    Sigma <- matrix(c(1,cv,cv,
-                                                      cv,1,cv,
-                                                      cv,cv,1),3,3))
+                                    Sigma <- matrix(c(ind_var,cv,cv,
+                                                      cv,ind_var,cv,
+                                                      cv,cv,ind_var),3,3))
                 
                 for (iCond in seq(1,nrow(cond_df))){
                         
@@ -237,6 +243,7 @@ params$logical_check <- logical_check
 
 # Add the covariance
 params$cv <- cv
+params$ind_var <- ind_var
 
 # Now repeat nIter times
 params <- do.call("rbind", replicate(nIter, params, simplify = FALSE))
