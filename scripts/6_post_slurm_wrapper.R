@@ -13,16 +13,16 @@ saveData <- TRUE
 
 # For the summary stats
 nFrom <- 20
-nTo   <- 425
-nBy   <- 15
+nTo   <- 180
+nBy   <- 16
 
 # Folder where the slurm output is
-folder <- 'multiple_stopping_rule'
+folder <- 'multiple_stopping_rule_comparison'
 
 # Now, call each function ######################################################
 
 ## 2_move_slurm_output --------------------------------------------------------
-# move_slurm_output(saveData,folder)
+move_slurm_output(saveData,folder)
 
 ## 3_preprocess_output --------------------------------------------------------
 sims_preprocessed <- preprocess_output(saveData,folder)

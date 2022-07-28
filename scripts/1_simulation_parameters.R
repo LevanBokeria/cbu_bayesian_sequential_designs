@@ -13,7 +13,7 @@
 rm(list=ls())
 
 # Setting seed
-set.seed(789654)
+set.seed(654456)
 
 # Libraries
 pacman::p_load(rslurm,
@@ -43,9 +43,9 @@ sr_df <- data.frame(condition = numeric(n_sr),
 
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
-sr_df$batchSize <- c(15,15)
-sr_df$limit     <- c(425,425)
-sr_df$d         <- c(0,0.25)
+sr_df$batchSize <- c(16,16)
+sr_df$limit     <- c(180,180)
+sr_df$d         <- c(0.5,0.5)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
@@ -55,7 +55,7 @@ logical_check <- '&'
 
 
 # Name for saving folder
-saveFolder <- 'multiple_stopping_rule_no_effect_small'
+saveFolder <- 'multiple_stopping_rule_comparison'
 
 # Submit the slurm job?
 submitJob <- TRUE
@@ -118,8 +118,8 @@ helperfunction <- function(minN,
                 
                 if (cond_df$test_type[iCond] == 'unpaired'){
                         
-                        dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(batchSize, 0, 1))
-                        dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+                        dataG1[[iCond]]      <- c(dataG1[[iCond]], rnorm(n_part, 0, 1))
+                        dataG2[[iCond]]      <- c(dataG2[[iCond]], rnorm(n_part, cond_df$d[iCond], 1))
                         
                         bf[[iCond]][1] <- reportBF(ttestBF(
                                 dataG2[[iCond]], 
@@ -129,7 +129,7 @@ helperfunction <- function(minN,
                         
                 } else if (cond_df$test_type[iCond] == 'paired'){
                         
-                        dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(batchSize, cond_df$d[iCond], 1))
+                        dataG1[[iCond]]    <- c(dataG1[[iCond]], rnorm(n_part, cond_df$d[iCond], 1))
                         
                         bf[[iCond]][1] <- reportBF(ttestBF(
                                 dataG1[[iCond]],
@@ -257,7 +257,7 @@ if (simLocal){
 
 # Create job
 if (submitJob){
-        print('Submitting to the cluster...\n')
+        print('Submitting to the cluster...')
         
         sjob1 <- slurm_apply(helperfunction,
                              params, 
