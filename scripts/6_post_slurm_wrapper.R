@@ -13,11 +13,11 @@ saveData <- TRUE
 
 # For the summary stats
 nFrom <- 20
-nTo   <- 340
+nTo   <- 180
 nBy   <- 16
 
 # Folder where the slurm output is
-folder <- 'multiple_stopping_rule_dependent_conditions_0_025'
+folder <- 'multiple_stopping_rule_dependent_conditions_0_05_05'
 
 # Now, call each function ######################################################
 
