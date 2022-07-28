@@ -49,7 +49,7 @@ sr_df$d         <- c(0.5,0.5)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
-sr_df$side_type <- c('one_tailed','one_tailed')
+sr_df$side_type <- c('two_tailed','two_tailed')
 
 logical_check <- '&'
 
