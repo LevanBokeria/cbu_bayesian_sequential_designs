@@ -24,7 +24,7 @@ for (iSim in seq(n_sim)){
         }
         
         all_data <- mvrnorm(n = 100,
-                            mu = c(0.5,
+                            mu = c(0.9,
                                    0,
                                    0.5),
                             Sigma = matrix(c(ind_var,cv,cv,
