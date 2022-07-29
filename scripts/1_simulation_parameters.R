@@ -32,8 +32,8 @@ nIter         <- 10000
 ## If multiple stopping rules ------------------------------------------------------
 
 # whats the covariance between conditions?
-cv <- 0
-ind_var <- 1/2
+cv <- 0.5
+ind_var <- 1
 
 n_sr <- 2
 
@@ -50,7 +50,7 @@ sr_df <- data.frame(condition = numeric(n_sr),
 sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(16,16)
-sr_df$limit     <- c(180,180)
+sr_df$limit     <- c(100,100)
 sr_df$d         <- c(0.5,0.5)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
@@ -60,7 +60,7 @@ sr_df$side_type <- c('two_tailed','two_tailed')
 logical_check <- '&'
 
 # Name for saving folder
-saveFolder <- paste('multiple_stopping_rule_dependent_conditions',
+saveFolder <- paste('mult_stop_rule_dep_cond',
                     cv,
                     paste(sr_df$d,collapse = '_'),
                     sep = '_',
