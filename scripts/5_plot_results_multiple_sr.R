@@ -15,7 +15,7 @@ plot_results = function(folderName){
         
         # This must correspond to the variable given to the previous scripts
         if (missing(folderName)){
-                folderName <- 'multiple_stopping_rule_dependent_conditions_05_05'                
+                folderName <- 'mult_stop_rule_dep_cond_0_05_05'                
         }       
         
         power_table <- import(file.path('./analysis_results',
@@ -98,8 +98,7 @@ plot_results = function(folderName){
                         theme(axis.text.x = element_text(angle = 90)) + 
                         ylab('% of simulations') +
                         xlab('max N per group') +                 
-                        ggtitle(title_string) +
-                        coord_cartesian(xlim = c(20,180))
+                        ggtitle(title_string)
                 
                 # Code below added a dashed line for the results with independen conditions being simulated
                 power_table2 <- import('../../Desktop/New folder/power_table.RData')
