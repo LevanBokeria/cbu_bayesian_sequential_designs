@@ -26,7 +26,7 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 100
+nIter         <- 10000
 
 
 ## If multiple stopping rules ------------------------------------------------------
@@ -51,7 +51,7 @@ sr_df$condition <- c(1,2)
 sr_df$minN      <- c(20)
 sr_df$batchSize <- c(16,16)
 sr_df$limit     <- c(100,100)
-sr_df$d         <- c(0.5,0.5)
+sr_df$d         <- c(0,0)
 sr_df$crit1     <- c(6,6)
 sr_df$crit2     <- c(1/6,1/6)
 sr_df$test_type <- c('paired','paired')
@@ -59,7 +59,7 @@ sr_df$side_type <- c('two_tailed','two_tailed')
 
 logical_check <- '&'
 
-group_independence <- 1
+group_independence <- 0
 
 # Name for saving folder
 saveFolder <- paste('mult_stop_rule_indep',
@@ -70,7 +70,7 @@ saveFolder <- paste('mult_stop_rule_indep',
                     collapse = '_')
 
 # Submit the slurm job?
-submitJob <- F
+submitJob <- T
 
 # Simulate locally? This will take much longer for large jobs
 simLocal <- !submitJob
