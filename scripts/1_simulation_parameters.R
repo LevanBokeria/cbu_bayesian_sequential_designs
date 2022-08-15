@@ -26,7 +26,7 @@ pacman::p_load(rslurm,
 # Slurm job parameters
 n_nodes       <- 1
 cpus_per_node <- 16
-nIter         <- 10000
+nIter         <- 100
 
 
 ## If multiple stopping rules ------------------------------------------------------
@@ -59,15 +59,18 @@ sr_df$side_type <- c('two_tailed','two_tailed')
 
 logical_check <- '&'
 
+group_independence <- 1
+
 # Name for saving folder
-saveFolder <- paste('mult_stop_rule_dep_cond',
-                    cv,
+saveFolder <- paste('mult_stop_rule_indep',
+                    group_independence,
+                    'effSiz',
                     paste(sr_df$d,collapse = '_'),
                     sep = '_',
                     collapse = '_')
 
 # Submit the slurm job?
-submitJob <- T
+submitJob <- F
 
 # Simulate locally? This will take much longer for large jobs
 simLocal <- !submitJob
@@ -90,7 +93,8 @@ helperfunction <- function(minN,
                            cond_2_side_type,
                            logical_check,
                            cv,
-                           ind_var){
+                           ind_var,
+                           independent_groups){
         
         # Subfunction to efficiently report the BF
         # From https://github.com/JAQuent/assortedRFunctions/R/reportBF.R
@@ -112,20 +116,25 @@ helperfunction <- function(minN,
         
         cond_df <- data.frame(minN,batchSize,limit,d,crit1,crit2,test_type,side_type)
         cond_df$logical_check <- logical_check
+        cond_df$group_independence <- independent_groups
         cond_df$condition <- 1:nrow(cond_df)
         
         results <- data.frame()
         n_part  <- as.numeric(minN)       
         
+        # Is it dependent or independent group simulation?
+        if (!independent_groups){
+                
+                # Get group data from a multivariabe normal distribution
+                all_data <- mvrnorm(n = minN,
+                                           mu = c(-cond_df$d[1],
+                                                  0,
+                                                  -cond_df$d[2]),
+                                           Sigma <- matrix(c(ind_var,cv,cv,
+                                                             cv,ind_var,cv,
+                                                             cv,cv,ind_var),3,3))
         
-        # Get group data from a multivariabe normal distribution
-        all_data <- mvrnorm(n = minN,
-                                   mu = c(-cond_df$d[1],
-                                          0,
-                                          -cond_df$d[2]),
-                                   Sigma <- matrix(c(ind_var,cv,cv,
-                                                     cv,ind_var,cv,
-                                                     cv,cv,ind_var),3,3))
+        }
         
         for (iCond in seq(1,nrow(cond_df))){
                 
@@ -137,11 +146,28 @@ helperfunction <- function(minN,
                 }        
                 
                 # Now get the differences
-                if (iCond == 1){
-                        dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,1])        
-                } else if (iCond == 2){
+                
+                if (independent_groups){
                         
-                        dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,3])        
+                        dataG1[[iCond]] <- c(dataG1[[iCond]], rnorm(minN,cond_df$d[iCond],1))
+                        
+                } else {
+                        
+                        if (iCond == 1){
+                                
+                                
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,1])                
+                                
+                                
+                                
+                        } else if (iCond == 2){
+                                
+                                
+                                
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,3])        
+                                
+                        }
+                        
                 }
                 
                 bf[[iCond]][1] <- reportBF(ttestBF(
@@ -169,14 +195,16 @@ helperfunction <- function(minN,
 
                 n_part <- n_part + batchSize
                 
-                # Get group data from a multivariabe normal distribution
-                all_data <- mvrnorm(n = batchSize,
-                                    mu = c(-cond_df$d[1],
-                                           0,
-                                           -cond_df$d[2]),
-                                    Sigma <- matrix(c(ind_var,cv,cv,
-                                                      cv,ind_var,cv,
-                                                      cv,cv,ind_var),3,3))
+                if (!independent_groups){
+                        # Get group data from a multivariabe normal distribution
+                        all_data <- mvrnorm(n = batchSize,
+                                            mu = c(-cond_df$d[1],
+                                                   0,
+                                                   -cond_df$d[2]),
+                                            Sigma <- matrix(c(ind_var,cv,cv,
+                                                              cv,ind_var,cv,
+                                                              cv,cv,ind_var),3,3))
+                }
                 
                 for (iCond in seq(1,nrow(cond_df))){
                         
@@ -187,12 +215,21 @@ helperfunction <- function(minN,
                                 null_interval <- c(0,Inf)
                         } 
                         
-                        # Now get the differences
-                        if (iCond == 1){
-                                dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,1])        
-                        } else if (iCond == 2){
+                        if (independent_groups){
                                 
-                                dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,3])        
+                                dataG1[[iCond]] <- c(dataG1[[iCond]], rnorm(batchSize,cond_df$d[iCond],1))
+                                
+                                
+                        } else {
+                        
+                                # Now get the differences
+                                if (iCond == 1){
+                                        dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,1])        
+                                } else if (iCond == 2){
+                                        
+                                        dataG1[[iCond]] <- c(dataG1[[iCond]], all_data[,2] - all_data[,3])        
+                                }
+                                        
                         }
                         
                         bf[[iCond]][i + 1] <- reportBF(ttestBF(
@@ -212,7 +249,8 @@ helperfunction <- function(minN,
                 pivot_wider(id_cols = c(minN,
                                         batchSize,
                                         limit,
-                                        logical_check),
+                                        logical_check,
+                                        group_independence),
                             names_from = condition,
                             values_from = c(d,crit1,crit2,test_type,side_type),
                             names_glue = "cond_{condition}_{.value}")
@@ -244,6 +282,9 @@ params$logical_check <- logical_check
 # Add the covariance
 params$cv <- cv
 params$ind_var <- ind_var
+
+# Add whether the groups are independent or dependent
+params$independent_groups <- group_independence
 
 # Now repeat nIter times
 params <- do.call("rbind", replicate(nIter, params, simplify = FALSE))

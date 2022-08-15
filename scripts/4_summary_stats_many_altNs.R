@@ -26,7 +26,7 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
                 nFrom <- 20
         }
         if (missing(nTo)){
-                nTo <- 104
+                nTo <- 100
         }
         if (missing(nBy)){
                 nBy <- 16
@@ -36,7 +36,7 @@ summary_stats = function(saveDF,nFrom,nTo,nBy,folderName){
         # Which preprocessed data to load?
         # This must correspond to where the simulation job was saved.
         if (missing(folderName)){
-                folderName <- 'multiple_stopping_rule_dependent_conditions_0.5_0.5'
+                folderName <- 'mult_stop_rule_indep_1_effSiz_0.5_0.5'
         }
         
         # Load the data and get unique factor combinations ############################

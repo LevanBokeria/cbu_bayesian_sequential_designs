@@ -15,7 +15,7 @@ plot_results = function(folderName){
         
         # This must correspond to the variable given to the previous scripts
         if (missing(folderName)){
-                folderName <- 'mult_stop_rule_dep_cond_0_05_05'                
+                folderName <- 'mult_stop_rule_indep_0_effSiz_0.5_0.5'                
         }       
         
         power_table <- import(file.path('./analysis_results',
@@ -101,22 +101,22 @@ plot_results = function(folderName){
                         ggtitle(title_string)
                 
                 # Code below added a dashed line for the results with independen conditions being simulated
-                power_table2 <- import('../../Desktop/New folder/power_table.RData')
-                # Classify simulations
-                power_table2 <- power_table2 %>%
-                        mutate(bf_status_combined = paste(cond_1_bf_status,cond_2_bf_status,sep='_'))
-
-                a <- power_table2 %>%
-                        filter(bf_status_combined == 'H1_H1') %>%
-                        droplevels()
-
-                fig <- fig +
-                        geom_line(data = a,
-                                  aes(x=altMaxN,
-                                      y=perc_simulations,
-                                      group = bf_status_combined),
-                                  linetype = 'dashed',
-                                  color = 'black')
+                # power_table2 <- import('../../Desktop/New folder/power_table.RData')
+                # # Classify simulations
+                # power_table2 <- power_table2 %>%
+                #         mutate(bf_status_combined = paste(cond_1_bf_status,cond_2_bf_status,sep='_'))
+                # 
+                # a <- power_table2 %>%
+                #         filter(bf_status_combined == 'H1_H1') %>%
+                #         droplevels()
+                # 
+                # fig <- fig +
+                #         geom_line(data = a,
+                #                   aes(x=altMaxN,
+                #                       y=perc_simulations,
+                #                       group = bf_status_combined),
+                #                   linetype = 'dashed',
+                #                   color = 'black')
                 
                 
                 # Optionally, add a dashed line for individual simulations
